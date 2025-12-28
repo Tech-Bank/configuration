@@ -11,6 +11,8 @@ services:
     environment:
       HDFS_URI: hdfs://namenode:8020
       LOGGING_FILE_NAME: /app/app.log
+    networks:
+      - tech-bank-net
     depends_on:
       - namenode
 
@@ -25,8 +27,11 @@ services:
     environment:
       HDFS_URI: hdfs://namenode:8020
       LOGGING_FILE_NAME: /app/app.log
+    networks:
+      - tech-bank-net
     depends_on:
       - namenode
+      - spark-master
 
   # ========================
   # HDFS: namenode
@@ -35,15 +40,23 @@ services:
     image: apache/hadoop:3.4.1
     hostname: namenode
     container_name: namenode
-    command: [ "hdfs", "namenode" ]
+    command: >
+      bash -c "
+      if [ ! -d /tmp/hadoop-hadoop/dfs/name/current ]; then
+      hdfs namenode -format -force;
+      fi &&
+      hdfs namenode
+      "
     ports:
       - "9870:9870"
     env_file:
       - ./config
     environment:
-      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-hadoop/dfs/name"
     volumes:
       - ./data/namenode:/tmp/hadoop-hadoop/dfs/name
+    networks:
+      - tech-bank-net
 
   # ========================
   # HDFS: datanode
@@ -58,6 +71,8 @@ services:
       - namenode
     volumes:
       - ./data/datanode:/tmp/hadoop-hadoop/dfs/data
+    networks:
+      - tech-bank-net
 
   # ========================
   # YARN: resourcemanager
@@ -73,6 +88,8 @@ services:
       - ./config
     volumes:
       - ./test.sh:/opt/test.sh
+    networks:
+      - tech-bank-net
     depends_on:
       - namenode
 
@@ -85,6 +102,8 @@ services:
     command: [ "yarn", "nodemanager" ]
     env_file:
       - ./config
+    networks:
+      - tech-bank-net
     depends_on:
       - resourcemanager
 
@@ -108,7 +127,7 @@ services:
       - "7077:7077"   # Spark Master RPC
       - "8081:8080"   # Spark Master UI
     networks:
-      - tech-bank
+      - tech-bank-net
 
   # ========================
   # Spark: spark-worker
@@ -127,11 +146,11 @@ services:
       - SPARK_WORKER_MEMORY=1G
       - SPARK_WORKER_CORES=1
     networks:
-      - tech-bank
+      - tech-bank-net
     depends_on:
       - spark-master
 
 
 networks:
-  tech-bank:
+  tech-bank-net:
     driver: bridge

@@ -5,14 +5,14 @@ meta {
 }
 
 post {
-  url: {{url}}/spark/wordcount?inputPath=/transactions&outputPath=/turnovers
+  url: {{url}}/spark/wordcount?inputPath=/user/test/input/input.txt&outputPath=/user/test/spark-output
   body: none
   auth: inherit
 }
 
 params:query {
-  inputPath: /transactions
-  outputPath: /turnovers
+  inputPath: /user/test/input/input.txt
+  outputPath: /user/test/spark-output
 }
 
 settings {

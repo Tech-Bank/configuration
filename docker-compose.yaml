@@ -1,0 +1,137 @@
+services:
+
+  # ========================
+  # App: master-dataset
+  # ========================
+  master-dataset:
+    build: ../master-dataset
+    container_name: master-dataset
+    ports:
+      - "8082:8080"
+    environment:
+      HDFS_URI: hdfs://namenode:8020
+      LOGGING_FILE_NAME: /app/app.log
+    depends_on:
+      - namenode
+
+  # ========================
+  # App: transaction-processor
+  # ========================
+  transaction-processor:
+    build: ../transaction-processor
+    container_name: transaction-processor
+    ports:
+      - "8083:8080"
+    environment:
+      HDFS_URI: hdfs://namenode:8020
+      LOGGING_FILE_NAME: /app/app.log
+    depends_on:
+      - namenode
+
+  # ========================
+  # HDFS: namenode
+  # ========================
+  namenode:
+    image: apache/hadoop:3.4.1
+    hostname: namenode
+    container_name: namenode
+    command: [ "hdfs", "namenode" ]
+    ports:
+      - "9870:9870"
+    env_file:
+      - ./config
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+    volumes:
+      - ./data/namenode:/tmp/hadoop-hadoop/dfs/name
+
+  # ========================
+  # HDFS: datanode
+  # ========================
+  datanode:
+    image: apache/hadoop:3.4.1
+    container_name: datanode
+    command: [ "hdfs", "datanode" ]
+    env_file:
+      - ./config
+    depends_on:
+      - namenode
+    volumes:
+      - ./data/datanode:/tmp/hadoop-hadoop/dfs/data
+
+  # ========================
+  # YARN: resourcemanager
+  # ========================
+  resourcemanager:
+    image: apache/hadoop:3.4.1
+    hostname: resourcemanager
+    container_name: resourcemanager
+    command: [ "yarn", "resourcemanager" ]
+    ports:
+      - "8088:8088"
+    env_file:
+      - ./config
+    volumes:
+      - ./test.sh:/opt/test.sh
+    depends_on:
+      - namenode
+
+  # ========================
+  # YARN: nodemanager
+  # ========================
+  nodemanager:
+    image: apache/hadoop:3.4.1
+    container_name: nodemanager
+    command: [ "yarn", "nodemanager" ]
+    env_file:
+      - ./config
+    depends_on:
+      - resourcemanager
+
+  # ========================
+  # Spark: spark-master
+  # ========================
+
+  spark-master:
+    image: apache/spark:4.0.1
+    container_name: spark-master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "7077:7077"   # Spark Master RPC
+      - "8081:8080"   # Spark Master UI
+    networks:
+      - tech-bank
+
+  # ========================
+  # Spark: spark-worker
+  # ========================
+
+  spark-worker:
+    image: apache/spark:4.0.1
+    container_name: spark-worker
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    networks:
+      - tech-bank
+    depends_on:
+      - spark-master
+
+
+networks:
+  tech-bank:
+    driver: bridge

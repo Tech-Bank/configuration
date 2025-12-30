@@ -80,7 +80,7 @@ services:
   # ========================
 
   spark-master:
-    image: apache/spark:3.5.7-scala2.12-java17-r-ubuntu
+    image: apache/spark:4.0.1-scala2.13-java21-ubuntu
     container_name: spark-master
     command: >
       /opt/spark/bin/spark-class
@@ -109,7 +109,7 @@ services:
   # ========================
 
   spark-worker:
-    image: apache/spark:3.5.7-scala2.12-java17-r-ubuntu
+    image: apache/spark:4.0.1-scala2.13-java21-ubuntu
     container_name: spark-worker
     command: >
       /opt/spark/bin/spark-class

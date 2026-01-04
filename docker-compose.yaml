@@ -82,6 +82,7 @@ services:
   spark-master:
     image: apache/spark:4.0.1-scala2.13-java21-ubuntu
     container_name: spark-master
+    hostname: spark-master
     command: >
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.master.Master
@@ -91,6 +92,7 @@ services:
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
+      - SPARK_PUBLIC_DNS=localhost
       - SPARK_DAEMON_JAVA_OPTS=
         -Dspark.serializer=org.apache.spark.serializer.KryoSerializer
         -Dspark.kryo.registrationRequired=false
@@ -98,6 +100,7 @@ services:
         --add-opens=java.base/sun.security.action=ALL-UNNAMED
     volumes:
       - ./spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+      - ./log4j2.properties:/opt/spark/conf/log4j2.properties
     ports:
       - "7077:7077"   # Spark Master RPC
       - "8081:8080"   # Spark Master UI
@@ -111,6 +114,7 @@ services:
   spark-worker:
     image: apache/spark:4.0.1-scala2.13-java21-ubuntu
     container_name: spark-worker
+    hostname: spark-worker
     command: >
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
@@ -120,6 +124,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=1G
       - SPARK_WORKER_CORES=1
+      - SPARK_PUBLIC_DNS=localhost
       - SPARK_DAEMON_JAVA_OPTS=
         -Dspark.serializer=org.apache.spark.serializer.KryoSerializer
         -Dspark.kryo.registrationRequired=false
@@ -127,6 +132,9 @@ services:
         --add-opens=java.base/sun.security.action=ALL-UNNAMED
     volumes:
       - ./spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+      - ./log4j2.properties:/opt/spark/conf/log4j2.properties
+    ports:
+      - "8084:8081"   # Spark Worker UI
     networks:
       - tech-bank-net
     depends_on:
